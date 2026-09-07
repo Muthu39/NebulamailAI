@@ -205,6 +205,22 @@ The following UI previews document the same flows shown in the supplied product 
 
 ![Assistant confirmation card before sending an email](docs/screenshots/assistant-confirmation.svg)
 
+### Assistant result
+
+![Assistant search and send result messages](docs/screenshots/assistant-result.svg)
+
+### Compose
+
+![Nebula Mail compose form](docs/screenshots/compose.svg)
+
+### Message detail
+
+![Gmail-style message detail view](docs/screenshots/message-detail.svg)
+
+### Sent mail
+
+![Nebula Mail Sent view](docs/screenshots/sent-mail.svg)
+
 ### Dark mode
 
 ![Nebula Mail dark-mode workspace](docs/screenshots/dark-mode.svg)
