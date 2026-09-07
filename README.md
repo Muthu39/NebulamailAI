@@ -45,6 +45,48 @@ npm test
 npm run build
 ```
 
+## How To Run Locally
+
+1. Install Node.js 20 or newer and verify it is available:
+
+  ```powershell
+  node --version
+  npm --version
+  ```
+
+2. Install dependencies and create the local environment file:
+
+  ```powershell
+  npm install
+  Copy-Item .env.example .env.local
+  ```
+
+3. Create a Google OAuth Web application client and add this local callback URL:
+
+  ```text
+  http://localhost:3000/api/auth/callback
+  ```
+
+4. Fill in `.env.local` with the Google credentials, matching callback URL, a long session secret, and the Groq key.
+5. Start the app:
+
+  ```powershell
+  npm run dev
+  ```
+
+6. Open [http://localhost:3000](http://localhost:3000), select **Connect Gmail**, choose an authorized Google account, and approve access.
+
+If port 3000 is occupied, Next.js may choose another port. Use the URL printed in the terminal and make the OAuth redirect URI match that port. Stop the server with `Ctrl+C`. Environment changes require a restart.
+
+For a production-like local check:
+
+```powershell
+npm run build
+npm run start
+```
+
+The local app requires real OAuth credentials to load mail. It intentionally shows an empty connection state instead of fake messages when Gmail is not connected.
+
 ## Environment Variables
 
 Copy `.env.example` to `.env.local` and fill in the values. Never commit `.env.local` or expose these values in browser code.
@@ -151,6 +193,51 @@ Send an email to john@example.com with subject Meeting and body Let us meet at 3
 
 The browser does not execute arbitrary model-generated code. It accepts only server-validated, allowlisted tool calls and maps them to typed UI actions.
 
+## Screenshots And Demo
+
+The following screenshots document the real UI flows demonstrated during development. They are intentionally described by state so the images cannot be mistaken for bundled or hardcoded mailbox data.
+
+| Flow | What it demonstrates |
+| --- | --- |
+| Inbox | Real Gmail messages displayed with sender, subject, preview, unread marker, timeframe filters, and paging controls. |
+| Message detail | Gmail message metadata, sanitized body content, read-state update, and reply action. |
+| Compose | A populated compose form with recipient, subject, body, discard, and send controls. |
+| Assistant confirmation | The assistant creates a draft and displays a **Ready to send** confirmation before any send request. |
+| Sent mail | The real Gmail Sent label after a successful send, with the assistant reporting Gmail acceptance. |
+| Dark mode | The same mailbox and assistant workspace using the dark theme and readable controls. |
+| Account and settings | Google account identity, connection status, theme/density controls, and Gmail settings link. |
+
+To capture fresh screenshots after connecting a real account:
+
+1. Start the app with `npm run dev`.
+2. Open the local URL and connect Gmail.
+3. Capture the Inbox, an opened message, Compose, the assistant confirmation card, Sent, and dark mode.
+4. Store exported images under `docs/screenshots/` and embed them here using relative links, for example:
+
+  ```markdown
+  ![Inbox with real Gmail messages](docs/screenshots/inbox.png)
+  ```
+
+The repository does not commit account-specific screenshots by default because they may expose private senders, subjects, addresses, or message contents. Redact personal data before publishing screenshots. A short screen recording should show the same sequence: connect account, ask the assistant to search, open a message, compose a draft, confirm sending, and open Sent.
+
+### Assistant UI-control demonstration
+
+```text
+User: Show emails from sarah@example.com
+Assistant: calls search_emails with the validated sender filter
+Browser: updates shared Zustand filter state and reloads Gmail
+UI: displays the matching real Gmail response
+
+User: Compose an email to john@example.com
+Assistant: calls open_compose with validated fields
+Browser: opens the compose view and fills the form
+UI: displays Ready to send; no message is sent yet
+
+User: Confirm Send email
+Browser: calls POST /api/gmail/send
+UI: changes to Sent and reports Gmail’s response
+```
+
 ## API Reference
 
 All routes are handled by Next.js route handlers. Authenticated Gmail routes read the encrypted session cookie on the server.
@@ -250,6 +337,36 @@ Opens an authenticated Server-Sent Events stream. It sends `connected`, periodic
 ### `POST /api/webhooks/gmail`
 
 Receives a Gmail Pub/Sub push notification. It requires the `x-nebula-webhook-secret` header to match `GMAIL_WEBHOOK_SECRET`, then publishes a mailbox update event.
+
+## Architecture Decisions And Trade-offs
+
+### Gmail API through server routes
+
+The browser calls Next.js route handlers instead of Gmail directly. This keeps client secrets and refresh tokens off the client and gives the application one place to validate requests and normalize errors. The trade-off is that every mailbox interaction adds a server hop and the deployment must support OAuth callbacks.
+
+### Encrypted cookie session
+
+The current session is encrypted with `jose` and stored in an `httpOnly` cookie, which is simple and appropriate for a single-instance demo. It avoids exposing OAuth tokens to browser JavaScript. The trade-off is that durable multi-instance deployments should move session material to encrypted database-backed storage and rotate secrets carefully.
+
+### Zustand for shared UI state
+
+Zustand keeps mailbox filters, compose state, selected messages, and assistant actions synchronized without prop drilling. Manual controls and AI actions therefore update the same state model. The trade-off is a client-side store whose request lifecycle needs explicit cancellation and latest-request guards, which are implemented in the mailbox loader.
+
+### Metadata first, full message on demand
+
+Mailbox pages request Gmail metadata only; the full MIME payload is fetched when a message opens. This reduces initial payload size and latency. The trade-off is one additional request per opened message and the need to handle messages that change between list and detail requests.
+
+### Allowlisted assistant tools
+
+The model can request only named, Zod-validated tools. The browser maps those tools to typed actions and never executes generated JavaScript. This substantially limits the assistant’s control surface. The trade-off is that new assistant behavior requires a deliberate tool definition and UI mapping rather than arbitrary natural-language automation.
+
+### Explicit send confirmation
+
+AI-created email is never sent directly from a model response. It first populates Compose and requires an explicit user confirmation. This protects against prompt mistakes and untrusted email content. The trade-off is one extra interaction, which is appropriate for an irreversible external action.
+
+### Process-local realtime events
+
+The optional Pub/Sub webhook publishes a process-local event consumed by authenticated SSE clients. It is easy to run and demonstrate locally. The trade-off is that multiple production instances need a shared broker or durable notification store, and Gmail watch expiration must be persisted and renewed.
 
 ## Architecture
 
@@ -368,3 +485,14 @@ The Vitest suite covers Gmail query composition and shared Zustand actions. Type
 ## Project Status
 
 The application intentionally does not ship hardcoded email results or a fake Gmail backend. Gmail features remain unavailable until a user authorizes the app and the deployment has valid Google OAuth configuration. Optional Pub/Sub synchronization requires public HTTPS infrastructure and Google Cloud configuration.
+
+## What I Would Improve With More Time
+
+- Move OAuth sessions and refresh-token metadata to encrypted, durable database storage with key rotation and revocation support.
+- Add Gmail history synchronization, retry queues, idempotency, and persisted watch renewal instead of refreshing the current list after every event.
+- Replace process-local SSE fan-out with a shared broker for multi-instance deployments.
+- Add conversation/thread grouping, labels, archive/delete/star actions, attachments, drafts persistence, and richer Gmail-compatible compose formatting.
+- Add a stricter HTML rendering policy with a restrictive iframe/content-security boundary and broader MIME test coverage.
+- Add Playwright acceptance tests around mailbox navigation, stale request cancellation, pagination, compose confirmation, and authenticated test seams.
+- Add structured observability for Gmail latency, API quotas, OAuth failures, tool calls, and send outcomes without logging message contents or tokens.
+- Add polished redacted product screenshots and a short assistant-control recording to the repository’s submission documentation.
