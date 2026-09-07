@@ -195,7 +195,19 @@ The browser does not execute arbitrary model-generated code. It accepts only ser
 
 ## Screenshots And Demo
 
-The following screenshots document the real UI flows demonstrated during development. They are intentionally described by state so the images cannot be mistaken for bundled or hardcoded mailbox data.
+The following UI previews document the same flows shown in the supplied product screenshots. Mail rows are illustrative previews; the running application always replaces them with the connected user’s real Gmail response.
+
+### Inbox
+
+![Nebula Mail Inbox with search, filters, real-mail layout, and pagination](docs/screenshots/inbox-preview.svg)
+
+### Assistant confirmation
+
+![Assistant confirmation card before sending an email](docs/screenshots/assistant-confirmation.svg)
+
+### Dark mode
+
+![Nebula Mail dark-mode workspace](docs/screenshots/dark-mode.svg)
 
 | Flow | What it demonstrates |
 | --- | --- |
@@ -218,7 +230,7 @@ To capture fresh screenshots after connecting a real account:
   ![Inbox with real Gmail messages](docs/screenshots/inbox.png)
   ```
 
-The repository does not commit account-specific screenshots by default because they may expose private senders, subjects, addresses, or message contents. Redact personal data before publishing screenshots. A short screen recording should show the same sequence: connect account, ask the assistant to search, open a message, compose a draft, confirm sending, and open Sent.
+The repository does not commit account-specific screenshots because they may expose private senders, subjects, addresses, or message contents. Redact personal data before publishing real captures. A short screen recording should show the same sequence: connect account, ask the assistant to search, open a message, compose a draft, confirm sending, and open Sent.
 
 ### Assistant UI-control demonstration
 
