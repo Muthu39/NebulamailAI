@@ -1,7 +1,29 @@
 ﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Archive, ArrowLeft, ArrowUpRight, Bot, Check, ChevronDown, Clock3, Inbox, Loader2, LogOut, Mail, Menu, Moon, Paperclip, PenLine, RefreshCw, Search, Send, Settings, Sparkles, Star, Sun, X } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  Check,
+  ChevronDown,
+  Clock3,
+  Inbox,
+  Loader2,
+  LogOut,
+  Mail,
+  Menu,
+  Moon,
+  Paperclip,
+  PenLine,
+  RefreshCw,
+  Search,
+  Send,
+  Settings,
+  Sparkles,
+  Star,
+  Sun,
+  X,
+} from "lucide-react";
 import DOMPurify from "isomorphic-dompurify";
 import { useMailStore } from "@/store/mail-store";
 import type { AppContext, ComposeState, MailDetail, MailFilter, MailSummary } from "@/types/mail";
@@ -9,7 +31,7 @@ import type { AppContext, ComposeState, MailDetail, MailFilter, MailSummary } fr
 const suggested = ["Show unread emails", "Find emails from Sarah", "Compose an email", "Open latest email"];
 const timeframes = ["Today", "Last 30 days", "Last year", "All time"] as const;
 
-type Timeframe = typeof timeframes[number];
+type Timeframe = (typeof timeframes)[number];
 
 function timeframeFilters(timeframe: Timeframe): Pick<MailFilter, "after" | "before"> {
   if (timeframe === "All time") return { after: "", before: "" };
@@ -17,7 +39,10 @@ function timeframeFilters(timeframe: Timeframe): Pick<MailFilter, "after" | "bef
   const after = new Date(today);
   if (timeframe === "Last 30 days") after.setDate(today.getDate() - 30);
   if (timeframe === "Last year") after.setFullYear(today.getFullYear() - 1);
-  return { after: after.toISOString().slice(0, 10), before: timeframe === "Today" ? new Date(today.getTime() + 86400000).toISOString().slice(0, 10) : "" };
+  return {
+    after: after.toISOString().slice(0, 10),
+    before: timeframe === "Today" ? new Date(today.getTime() + 86400000).toISOString().slice(0, 10) : "",
+  };
 }
 
 function formatDate(date: string) {
@@ -32,7 +57,10 @@ function initials(name: string) {
 export function MailShell() {
   const store = useMailStore();
   const [assistantInput, setAssistantInput] = useState("");
-  const [assistantMessages, setAssistantMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([{ role: "assistant", content: "Good morning. I can search, open, compose, and manage your Gmail with you." }]);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantMessages, setAssistantMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([
+    { role: "assistant", content: "Good morning. I can search, open, compose, and manage your Gmail with you." },
+  ]);
   const [pendingSend, setPendingSend] = useState<ComposeState | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => typeof window !== "undefined" && window.localStorage.getItem("nebula-theme") === "dark");
@@ -46,11 +74,19 @@ export function MailShell() {
   const mailboxRequestIdRef = useRef(0);
 
   function toggleTheme() {
-    setDarkMode((value) => { const next = !value; window.localStorage.setItem("nebula-theme", next ? "dark" : "light"); return next; });
+    setDarkMode((value) => {
+      const next = !value;
+      window.localStorage.setItem("nebula-theme", next ? "dark" : "light");
+      return next;
+    });
   }
 
   function toggleDensity() {
-    setCompactMode((value) => { const next = !value; window.localStorage.setItem("nebula-density", next ? "compact" : "comfortable"); return next; });
+    setCompactMode((value) => {
+      const next = !value;
+      window.localStorage.setItem("nebula-density", next ? "compact" : "comfortable");
+      return next;
+    });
   }
 
   function selectTimeframe(timeframe: Timeframe) {
@@ -60,7 +96,18 @@ export function MailShell() {
     void loadMessages(undefined, nextFilters);
   }
 
-  const context: AppContext = useMemo(() => ({ currentView: store.currentView, selectedEmailId: store.selectedEmailId, selectedEmail: store.selectedEmail, filters: store.filters, searchQuery: store.searchQuery, composeState: store.composeState, userEmail: store.userEmail }), [store.currentView, store.selectedEmailId, store.selectedEmail, store.filters, store.searchQuery, store.composeState, store.userEmail]);
+  const context: AppContext = useMemo(
+    () => ({
+      currentView: store.currentView,
+      selectedEmailId: store.selectedEmailId,
+      selectedEmail: store.selectedEmail,
+      filters: store.filters,
+      searchQuery: store.searchQuery,
+      composeState: store.composeState,
+      userEmail: store.userEmail,
+    }),
+    [store.currentView, store.selectedEmailId, store.selectedEmail, store.filters, store.searchQuery, store.composeState, store.userEmail]
+  );
 
   const loadMessages = useCallback(async (view?: "inbox" | "sent", filters?: MailFilter, search?: string, pageToken?: string) => {
     const current = useMailStore.getState();
@@ -76,8 +123,16 @@ export function MailShell() {
       setPageTokenHistory([]);
       setNextPageToken(undefined);
     }
-    current.setLoading(resolvedView === "sent" ? "Loading sent mail..." : "Loading inbox...");
-    const query = new URLSearchParams({ view: resolvedView, sender: resolvedFilters.sender, keyword: resolvedFilters.keyword, after: resolvedFilters.after, before: resolvedFilters.before, unread: String(resolvedFilters.unread), search: resolvedSearch });
+    current.setLoading(resolvedView === "sent" ? "Loading sent mail…" : "Loading inbox…");
+    const query = new URLSearchParams({
+      view: resolvedView,
+      sender: resolvedFilters.sender,
+      keyword: resolvedFilters.keyword,
+      after: resolvedFilters.after,
+      before: resolvedFilters.before,
+      unread: String(resolvedFilters.unread),
+      search: resolvedSearch,
+    });
     if (pageToken) query.set("pageToken", pageToken);
     try {
       const response = await fetch(`/api/gmail/messages?${query}`, { signal: controller.signal });
@@ -87,10 +142,18 @@ export function MailShell() {
         setPageTokenHistory([]);
         setNextPageToken(undefined);
         current.setEmails([]);
-        current.setError(payload.error === "AUTH_REQUIRED" ? "Connect Gmail to load your mailbox." : payload.error === "GOOGLE_OAUTH_NOT_CONFIGURED" ? "Google OAuth is not configured. Add your Google client credentials to .env.local and restart the server." : "Gmail could not be reached. Try refreshing the mailbox.");
+        current.setError(
+          payload.error === "AUTH_REQUIRED"
+            ? "Connect Gmail to load your mailbox."
+            : payload.error === "GOOGLE_OAUTH_NOT_CONFIGURED"
+            ? "Google OAuth is not configured. Add your Google client credentials to .env.local and restart the server."
+            : "Gmail could not be reached. Try refreshing the mailbox."
+        );
         return;
       }
-      current.setUserEmail(payload.userEmail); setProfile(payload.profile); setNextPageToken(payload.nextPageToken);
+      current.setUserEmail(payload.userEmail);
+      setProfile(payload.profile);
+      setNextPageToken(payload.nextPageToken);
       current.setEmails(payload.emails);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
@@ -102,22 +165,29 @@ export function MailShell() {
     }
   }, []);
 
-  useEffect(() => { void loadMessages(); }, [loadMessages]);
+  useEffect(() => {
+    void loadMessages();
+  }, [loadMessages]);
 
   useEffect(() => {
     if (!store.userEmail) return;
     const events = new EventSource("/api/events");
-    events.onmessage = (event) => { if (JSON.parse(event.data).type === "mail.updated") void loadMessages(); };
+    events.onmessage = (event) => {
+      if (JSON.parse(event.data).type === "mail.updated") void loadMessages();
+    };
     return () => events.close();
   }, [loadMessages, store.userEmail]);
 
   async function openEmail(email: MailSummary) {
-    store.setLoading("Opening email...");
+    store.setLoading("Opening email…");
     const response = await fetch(`/api/gmail/messages/${email.id}`);
     const payload = await response.json();
-    if (!response.ok) { store.setError("This message could not be opened."); return; }
+    if (!response.ok) {
+      store.setError("This message could not be opened.");
+      return;
+    }
     store.setSelectedEmail(payload.email);
-    store.setEmails(store.emails.map((item) => item.id === email.id ? { ...item, isUnread: false } : item));
+    store.setEmails(store.emails.map((item) => (item.id === email.id ? { ...item, isUnread: false } : item)));
   }
 
   function loadNextPage() {
@@ -137,11 +207,17 @@ export function MailShell() {
   function executeTool(name: string, args: Record<string, unknown>) {
     if (name === "navigate_to_view") {
       const view = args.view as "inbox" | "sent" | "compose";
-      store.setView(view); if (view !== "compose") void loadMessages(view);
+      store.setView(view);
+      if (view !== "compose") void loadMessages(view);
       return `Opening ${view}.`;
     }
     if (name === "open_compose") {
-      store.openCompose({ to: String(args.to ?? ""), subject: String(args.subject ?? ""), body: String(args.body ?? ""), mode: (args.mode as ComposeState["mode"]) ?? "new" });
+      store.openCompose({
+        to: String(args.to ?? ""),
+        subject: String(args.subject ?? ""),
+        body: String(args.body ?? ""),
+        mode: (args.mode as ComposeState["mode"]) ?? "new",
+      });
       return "Compose is open and ready for your edits.";
     }
     if (name === "open_email") {
@@ -150,74 +226,540 @@ export function MailShell() {
       return email ? `Opening ${email.subject}.` : "I could not find that message in the current results.";
     }
     if (name === "search_emails") {
-      const filters: Partial<MailFilter> = { sender: String(args.sender ?? ""), keyword: String(args.keyword ?? ""), after: String(args.after ?? ""), before: String(args.before ?? ""), unread: Boolean(args.unread) };
-      store.setFilters(filters); void loadMessages("inbox", { ...store.filters, ...filters }); return "Searching Gmail and updating the inbox results.";
+      const filters: Partial<MailFilter> = {
+        sender: String(args.sender ?? ""),
+        keyword: String(args.keyword ?? ""),
+        after: String(args.after ?? ""),
+        before: String(args.before ?? ""),
+        unread: Boolean(args.unread),
+      };
+      store.setFilters(filters);
+      void loadMessages("inbox", { ...store.filters, ...filters });
+      return "Searching Gmail and updating the inbox results.";
     }
     if (name === "reply_to_email") {
       const email = store.selectedEmail;
       if (!email) return "Open an email first so I know which conversation to reply to.";
-      store.openCompose({ to: email.replyTo || email.senderEmail, subject: email.subject.startsWith("Re:") ? email.subject : `Re: ${email.subject}`, body: String(args.body ?? ""), mode: "reply", threadId: email.threadId, inReplyTo: email.id });
+      store.openCompose({
+        to: email.replyTo || email.senderEmail,
+        subject: email.subject.startsWith("Re:") ? email.subject : `Re: ${email.subject}`,
+        body: String(args.body ?? ""),
+        mode: "reply",
+        threadId: email.threadId,
+        inReplyTo: email.id,
+      });
       return `Replying to ${email.sender}.`;
     }
     if (name === "send_email") {
       setPendingSend({ to: String(args.to), cc: "", subject: String(args.subject), body: String(args.body), mode: "new" });
-      return "Ready to send. Please confirm the message in the assistant panel.";
+      return "Ready to send. Please confirm the message below.";
     }
     return "I could not complete that action.";
   }
 
   async function askAssistant(value = assistantInput) {
-    const message = value.trim(); if (!message) return;
-    setAssistantInput(""); setAssistantMessages((items) => [...items, { role: "user", content: message }, { role: "assistant", content: "Working on that..." }]);
+    const message = value.trim();
+    if (!message) return;
+    setAssistantOpen(true);
+    setAssistantInput("");
+    setAssistantMessages((items) => [...items, { role: "user", content: message }, { role: "assistant", content: "Working on that…" }]);
     const response = await fetch("/api/ai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message, context }) });
     const payload = await response.json();
-    if (!response.ok) { const content = payload.error === "AI_NOT_CONFIGURED" ? "Add GROQ_API_KEY to enable the assistant." : payload.error === "AI_AUTH_FAILED" ? "The Groq API key is invalid. Replace GROQ_API_KEY in Vercel and redeploy." : payload.error === "AI_RATE_LIMITED" ? "Groq rate limit reached. Check your Groq usage limits." : payload.error === "AI_REQUEST_REJECTED" ? "Groq rejected this request. Check the selected model and try again." : "The assistant is temporarily unavailable."; setAssistantMessages((items) => [...items.slice(0, -1), { role: "assistant", content }]); return; }
-    const results = (payload.toolCalls ?? []).map((call: { function: { name: string; arguments: string } }) => executeTool(call.function.name, JSON.parse(call.function.arguments))).join(" ");
+    if (!response.ok) {
+      const content =
+        payload.error === "AI_NOT_CONFIGURED"
+          ? "Add GROQ_API_KEY to enable the assistant."
+          : payload.error === "AI_AUTH_FAILED"
+          ? "The Groq API key is invalid. Replace GROQ_API_KEY in Vercel and redeploy."
+          : payload.error === "AI_RATE_LIMITED"
+          ? "Groq rate limit reached. Check your Groq usage limits."
+          : payload.error === "AI_REQUEST_REJECTED"
+          ? "Groq rejected this request. Check the selected model and try again."
+          : "The assistant is temporarily unavailable.";
+      setAssistantMessages((items) => [...items.slice(0, -1), { role: "assistant", content }]);
+      return;
+    }
+    const results = (payload.toolCalls ?? [])
+      .map((call: { function: { name: string; arguments: string } }) => executeTool(call.function.name, JSON.parse(call.function.arguments)))
+      .join(" ");
     setAssistantMessages((items) => [...items.slice(0, -1), { role: "assistant", content: results || payload.message || "I’m ready for another mail task." }]);
   }
 
   async function sendConfirmed() {
     if (!pendingSend) return;
-    store.setLoading("Sending...");
+    store.setLoading("Sending…");
     const response = await fetch("/api/gmail/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(pendingSend) });
     const payload = await response.json();
-    if (!response.ok) { store.setError(payload.error === "AUTH_REQUIRED" ? "Connect Gmail before sending." : "Gmail could not send this message."); return; }
-    setPendingSend(null); store.setLoading(undefined); store.setView("sent"); void loadMessages("sent"); setAssistantMessages((items) => [...items, { role: "assistant", content: "Sent. Gmail accepted the message." }]);
+    if (!response.ok) {
+      store.setError(payload.error === "AUTH_REQUIRED" ? "Connect Gmail before sending." : "Gmail could not send this message.");
+      return;
+    }
+    setPendingSend(null);
+    store.setLoading(undefined);
+    store.setView("sent");
+    void loadMessages("sent");
+    setAssistantMessages((items) => [...items, { role: "assistant", content: "Sent. Gmail accepted the message." }]);
   }
 
   const isConnected = Boolean(store.userEmail);
   const accountName = profile?.name || store.userEmail || "Not connected";
-  return <div className={`nebula-app ${darkMode ? "theme-dark" : ""} ${compactMode ? "density-compact" : ""}`}>
-    <aside className={`sidebar ${sidebarOpen ? "sidebar-open" : ""}`}>
-      <div className="brand"><div className="brand-mark"><Sparkles size={17} /></div><span>Nebula</span><span className="brand-muted">/ mail</span></div>
-      <button className="compose-button" onClick={() => store.openCompose()}><PenLine size={17} /> Compose <span>⌘ K</span></button>
-      <nav className="nav-list" aria-label="Mailbox navigation">
-        <button className={store.currentView === "inbox" ? "nav-item active" : "nav-item"} onClick={() => { store.setView("inbox"); void loadMessages("inbox"); }}><Inbox size={18} /> Inbox</button>
-        <button className={store.currentView === "sent" ? "nav-item active" : "nav-item"} onClick={() => { store.setView("sent"); void loadMessages("sent"); }}><Send size={18} /> Sent</button>
-        <button className="nav-item" onClick={() => store.setView("compose")}><PenLine size={18} /> Drafts</button>
-      </nav>
-      <div className="sidebar-bottom">{!isConnected && <a className="connect-link" href="/api/auth/login">Connect Gmail <ArrowUpRight size={14} /></a>}</div>
-    </aside>
-    {sidebarOpen && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setSidebarOpen(false)} />}
-    <main className="mail-main">
-      <header className="topbar"><button className="icon-button mobile-menu" onClick={() => setSidebarOpen(true)} aria-label="Open navigation"><Menu size={20} /></button><div><div className="eyebrow">{store.currentView === "sent" ? "OUTBOX" : store.currentView === "detail" ? "MESSAGE" : "MAILBOX"}</div><h1>{store.currentView === "sent" ? "Sent mail" : store.currentView === "detail" ? "Email detail" : store.currentView === "compose" ? "New message" : "Inbox"}</h1></div><div className="topbar-actions"><button className="icon-button" onClick={() => void loadMessages()} aria-label="Refresh mailbox"><RefreshCw size={17} /></button><button className="icon-button" onClick={toggleTheme} aria-label={darkMode ? "Use light theme" : "Use dark theme"}>{darkMode ? <Sun size={17} /> : <Moon size={17} />}</button><button className="icon-button" onClick={() => setOpenPanel("settings")} aria-label="Open settings"><Settings size={17} /></button><button className="account account-button header-account" onClick={() => setOpenPanel("account")} aria-label="Open account"><div className="avatar avatar-small">{profile?.picture ? <img src={profile.picture} alt="" /> : initials(accountName)}</div><div><b>{accountName}</b><span>{store.userEmail || "Not connected"}</span></div><ChevronDown size={15} /></button></div></header>
-        <div className="mail-content">{store.error && <div className="error-banner">{store.error}<button onClick={() => store.setError(undefined)}><X size={15} /></button></div>}{store.loadingLabel && <div className="loading-line"><Loader2 size={15} className="spin" /> {store.loadingLabel}</div>}
-          {store.currentView === "compose" ? <ComposePanel state={store.composeState} onChange={store.updateCompose} onCancel={() => store.setView("inbox")} onSend={() => setPendingSend(store.composeState)} /> : store.currentView === "detail" && store.selectedEmail ? <DetailPanel email={store.selectedEmail} onBack={() => store.setView("inbox")} onReply={() => executeTool("reply_to_email", {})} /> : <><div className="search-row"><label className="search-box"><Search size={17} /><input value={store.searchQuery} onChange={(event) => store.setSearchQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void loadMessages(); }} placeholder="Search mail" /><kbd>⌘ K</kbd></label><button className={store.filters.unread ? "filter-button selected" : "filter-button"} onClick={() => { const unread = !store.filters.unread; store.setFilters({ unread }); void loadMessages("inbox", { ...store.filters, unread }); }}><Mail size={15} /> Unread</button><TimeframeButtons selected={selectedTimeframe} onSelect={selectTimeframe} /></div><div className="list-heading"><span>{store.filters.unread ? "Unread" : store.currentView === "sent" ? "All sent" : "All inbox"}</span><span>{store.emails.length} messages</span></div><div className="email-list">{store.emails.length ? store.emails.map((email) => <EmailRow key={email.id} email={email} onClick={() => void openEmail(email)} />) : <EmptyState connected={isConnected} />}</div>{(pageTokenHistory.length > 0 || nextPageToken) && <div className="pagination"><button className="load-more" onClick={loadPreviousPage} disabled={Boolean(store.loadingLabel) || !pageTokenHistory.length}>Previous page <ArrowUpRight size={14} /></button><button className="load-more" onClick={loadNextPage} disabled={Boolean(store.loadingLabel) || !nextPageToken}>Next page <ArrowUpRight size={14} /></button></div>}</>}</div>
-      </main>
-    <Assistant messages={assistantMessages} input={assistantInput} onInput={setAssistantInput} onAsk={() => void askAssistant()} onSuggestion={(value) => void askAssistant(value)} pendingSend={pendingSend} onCancelSend={() => setPendingSend(null)} onConfirmSend={() => void sendConfirmed()} />
-    {openPanel && <div className="modal-backdrop" onClick={() => setOpenPanel(null)}><section className="modal-panel" onClick={(event) => event.stopPropagation()}><button className="icon-button modal-close" onClick={() => setOpenPanel(null)} aria-label="Close panel"><X size={18} /></button>{openPanel === "settings" ? <><div className="eyebrow">WORKSPACE SETTINGS</div><h2>Settings</h2><p className="modal-copy">Manage the Nebula workspace and open the complete Gmail settings.</p><div className="settings-section"><div className="section-label">General</div><button className="setting-row" onClick={toggleTheme}><span>{darkMode ? <Sun size={17} /> : <Moon size={17} />} Appearance</span><strong>{darkMode ? "Dark" : "Light"}</strong></button><button className="setting-row" onClick={toggleDensity}><span>Reading density</span><strong>{compactMode ? "Compact" : "Comfortable"}</strong></button></div><div className="settings-section"><div className="section-label">Gmail</div><div className="connection-status"><span className={isConnected ? "status-dot online" : "status-dot"} />{isConnected ? "Connected and syncing" : "Not connected"}</div><span className="modal-copy">Inbox, Sent, search, read state, and sending use the Gmail API.</span><a href="https://mail.google.com/mail/u/0/#settings" target="_blank" rel="noreferrer">Open all Gmail settings <ArrowUpRight size={14} /></a></div></> : <><div className="eyebrow">GOOGLE ACCOUNT</div><div className="account-profile">{profile?.picture ? <img src={profile.picture} alt="" /> : <div className="avatar avatar-large">{initials(accountName)}</div>}<div><h2>{accountName}</h2><p>{store.userEmail || "Connect a Google account"}</p></div></div><div className="account-details"><span>Provider</span><strong>Google Gmail</strong><span>Session</span><strong>{isConnected ? "Secure and active" : "Not connected"}</strong><span>Permissions</span><strong>Mail read, modify, and send</strong></div>{isConnected ? <a className="setting-row" href="/api/auth/logout"><span><LogOut size={17} /> Sign out</span><strong>Exit</strong></a> : <a className="setting-row" href="/api/auth/login"><span><ArrowUpRight size={17} /> Connect Gmail</span><strong>Google</strong></a>}</>}</section></div>}
-  </div>;
+  const unreadCount = store.emails.filter((email) => email.isUnread).length;
+
+  return (
+    <div className={`nb-shell ${darkMode ? "nb-dark" : ""} ${compactMode ? "nb-compact" : ""}`}>
+      <div className="nb-glow" aria-hidden="true" />
+
+      <aside className={`nb-rail ${sidebarOpen ? "nb-rail-open" : ""}`}>
+        <div className="nb-mark">
+          <span className="nb-mark-dot" />
+          <span className="nb-mark-word">Nebula</span>
+        </div>
+
+        <button className="nb-compose-btn" onClick={() => store.openCompose()} aria-label="Compose a new email">
+          <PenLine size={17} />
+          <span>Compose</span>
+        </button>
+
+        <nav className="nb-nav" aria-label="Mailbox navigation">
+          <button className={store.currentView === "inbox" ? "nb-nav-item nb-active" : "nb-nav-item"} onClick={() => { store.setView("inbox"); setSidebarOpen(false); void loadMessages("inbox"); }}>
+            <Inbox size={18} />
+            <span>Inbox</span>
+            {unreadCount > 0 && <em className="nb-count">{unreadCount}</em>}
+          </button>
+          <button className={store.currentView === "sent" ? "nb-nav-item nb-active" : "nb-nav-item"} onClick={() => { store.setView("sent"); setSidebarOpen(false); void loadMessages("sent"); }}>
+            <Send size={18} />
+            <span>Sent</span>
+          </button>
+        </nav>
+
+        <div className="nb-rail-bottom">
+          <button className="nb-rail-icon" onClick={toggleTheme} aria-label={darkMode ? "Use light theme" : "Use dark theme"}>
+            {darkMode ? <Sun size={17} /> : <Moon size={17} />}
+          </button>
+          <button className="nb-rail-icon" onClick={() => setOpenPanel("settings")} aria-label="Open settings">
+            <Settings size={17} />
+          </button>
+          {!isConnected && (
+            <a className="nb-connect" href="/api/auth/login">
+              Connect Gmail
+            </a>
+          )}
+        </div>
+      </aside>
+      {sidebarOpen && <button className="nb-rail-scrim" aria-label="Close navigation" onClick={() => setSidebarOpen(false)} />}
+
+      <div className="nb-workspace">
+        <header className="nb-topbar">
+          <button className="nb-icon-btn nb-only-mobile" onClick={() => setSidebarOpen(true)} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+
+          <h1 className="nb-page-title">
+            {store.currentView === "sent" ? "Sent mail" : store.currentView === "detail" ? "Message" : store.currentView === "compose" ? "New message" : "Inbox"}
+          </h1>
+
+          {store.currentView !== "compose" && store.currentView !== "detail" && (
+            <label className="nb-search">
+              <Search size={16} />
+              <input
+                value={store.searchQuery}
+                onChange={(event) => store.setSearchQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") void loadMessages();
+                }}
+                placeholder="Search mail"
+              />
+            </label>
+          )}
+
+          <div className="nb-topbar-actions">
+            <button className="nb-icon-btn" onClick={() => void loadMessages()} aria-label="Refresh mailbox">
+              <RefreshCw size={17} />
+            </button>
+            <button className="nb-account" onClick={() => setOpenPanel("account")} aria-label="Open account">
+              <span className="nb-avatar nb-avatar-sm">{profile?.picture ? <img src={profile.picture} alt="" /> : initials(accountName)}</span>
+              <ChevronDown size={14} />
+            </button>
+          </div>
+        </header>
+
+        <div className="nb-content">
+          {store.error && (
+            <div className="nb-error">
+              <span>{store.error}</span>
+              <button onClick={() => store.setError(undefined)} aria-label="Dismiss">
+                <X size={15} />
+              </button>
+            </div>
+          )}
+          {store.loadingLabel && (
+            <div className="nb-loading">
+              <Loader2 size={14} className="nb-spin" /> {store.loadingLabel}
+            </div>
+          )}
+
+          {store.currentView === "compose" ? (
+            <ComposePanel state={store.composeState} onChange={store.updateCompose} onCancel={() => store.setView("inbox")} onSend={() => setPendingSend(store.composeState)} />
+          ) : store.currentView === "detail" && store.selectedEmail ? (
+            <DetailPanel email={store.selectedEmail} onBack={() => store.setView("inbox")} onReply={() => executeTool("reply_to_email", {})} />
+          ) : (
+            <>
+              <div className="nb-filter-row">
+                <button
+                  className={store.filters.unread ? "nb-pill nb-pill-on" : "nb-pill"}
+                  onClick={() => {
+                    const unread = !store.filters.unread;
+                    store.setFilters({ unread });
+                    void loadMessages("inbox", { ...store.filters, unread });
+                  }}
+                >
+                  <Mail size={13} /> Unread
+                </button>
+                {timeframes.map((timeframe) => (
+                  <button key={timeframe} className={selectedTimeframe === timeframe ? "nb-pill nb-pill-on" : "nb-pill"} onClick={() => selectTimeframe(timeframe)}>
+                    {timeframe}
+                  </button>
+                ))}
+              </div>
+
+              <ul className="nb-list">
+                {store.emails.length ? (
+                  store.emails.map((email, index) => <EmailRow key={email.id} email={email} index={index} onClick={() => void openEmail(email)} />)
+                ) : (
+                  <EmptyState connected={isConnected} />
+                )}
+              </ul>
+
+              {(pageTokenHistory.length > 0 || nextPageToken) && (
+                <div className="nb-pagination">
+                  <button className="nb-text-btn" onClick={loadPreviousPage} disabled={Boolean(store.loadingLabel) || !pageTokenHistory.length}>
+                    Previous
+                  </button>
+                  <button className="nb-text-btn" onClick={loadNextPage} disabled={Boolean(store.loadingLabel) || !nextPageToken}>
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      <button className={`nb-fab ${assistantOpen ? "nb-fab-active" : ""}`} onClick={() => setAssistantOpen((value) => !value)} aria-label={assistantOpen ? "Close assistant" : "Open assistant"}>
+        {assistantOpen ? <X size={19} /> : <Sparkles size={19} />}
+      </button>
+
+      <Assistant
+        open={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+        messages={assistantMessages}
+        input={assistantInput}
+        onInput={setAssistantInput}
+        onAsk={() => void askAssistant()}
+        onSuggestion={(value) => void askAssistant(value)}
+        pendingSend={pendingSend}
+        onCancelSend={() => setPendingSend(null)}
+        onConfirmSend={() => void sendConfirmed()}
+      />
+
+      {openPanel && (
+        <div className="nb-modal-backdrop" onClick={() => setOpenPanel(null)}>
+          <section className="nb-modal" onClick={(event) => event.stopPropagation()}>
+            <button className="nb-icon-btn nb-modal-close" onClick={() => setOpenPanel(null)} aria-label="Close panel">
+              <X size={18} />
+            </button>
+
+            {openPanel === "settings" ? (
+              <>
+                <h2>Settings</h2>
+                <p className="nb-modal-copy">Manage how Nebula looks and connects to Gmail.</p>
+
+                <div className="nb-modal-section">
+                  <span className="nb-modal-label">General</span>
+                  <button className="nb-row" onClick={toggleTheme}>
+                    <span>{darkMode ? <Sun size={17} /> : <Moon size={17} />} Appearance</span>
+                    <strong>{darkMode ? "Dark" : "Light"}</strong>
+                  </button>
+                  <button className="nb-row" onClick={toggleDensity}>
+                    <span>Reading density</span>
+                    <strong>{compactMode ? "Compact" : "Comfortable"}</strong>
+                  </button>
+                </div>
+
+                <div className="nb-modal-section">
+                  <span className="nb-modal-label">Gmail</span>
+                  <div className="nb-status">
+                    <span className={isConnected ? "nb-dot nb-dot-on" : "nb-dot"} />
+                    {isConnected ? "Connected and syncing" : "Not connected"}
+                  </div>
+                  <p className="nb-modal-copy">Inbox, sent mail, search, read state, and sending all use the Gmail API directly.</p>
+                  <a href="https://mail.google.com/mail/u/0/#settings" target="_blank" rel="noreferrer" className="nb-external">
+                    Open Gmail settings <ArrowUpRight size={13} />
+                  </a>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="nb-profile">
+                  {profile?.picture ? <img src={profile.picture} alt="" /> : <div className="nb-avatar nb-avatar-lg">{initials(accountName)}</div>}
+                  <div>
+                    <h2>{accountName}</h2>
+                    <p>{store.userEmail || "Connect a Google account"}</p>
+                  </div>
+                </div>
+                <div className="nb-details">
+                  <span>Provider</span>
+                  <strong>Google Gmail</strong>
+                  <span>Session</span>
+                  <strong>{isConnected ? "Secure and active" : "Not connected"}</strong>
+                  <span>Permissions</span>
+                  <strong>Mail read, modify, and send</strong>
+                </div>
+                {isConnected ? (
+                  <a className="nb-row" href="/api/auth/logout">
+                    <span>
+                      <LogOut size={17} /> Sign out
+                    </span>
+                    <strong>Exit</strong>
+                  </a>
+                ) : (
+                  <a className="nb-row" href="/api/auth/login">
+                    <span>Connect Gmail</span>
+                    <strong>Google</strong>
+                  </a>
+                )}
+              </>
+            )}
+          </section>
+        </div>
+      )}
+    </div>
+  );
 }
 
-function EmailRow({ email, onClick }: { email: MailSummary; onClick: () => void }) { return <button className={email.isUnread ? "email-row unread" : "email-row"} onClick={onClick}><span className="row-check"><input type="checkbox" aria-label={`Select ${email.subject}`} onClick={(event) => event.stopPropagation()} /></span><span className="avatar">{initials(email.sender)}</span><span className="email-copy"><span className="email-top"><b>{email.sender}</b><time>{formatDate(email.date)}</time></span><span className="subject-line">{email.subject}{email.isUnread && <span className="unread-dot" />}</span><span className="preview">{email.preview}</span></span><Star size={16} className="star" /></button>; }
+function EmailRow({ email, index, onClick }: { email: MailSummary; index: number; onClick: () => void }) {
+  return (
+    <li className="nb-row-wrap" style={{ animationDelay: `${Math.min(index, 10) * 28}ms` }}>
+      <button className={email.isUnread ? "nb-email-row nb-unread" : "nb-email-row"} onClick={onClick}>
+        <span className="nb-avatar">{initials(email.sender)}</span>
+        <span className="nb-email-copy">
+          <span className="nb-email-top">
+            <b>{email.sender}</b>
+            <time>{formatDate(email.date)}</time>
+          </span>
+          <span className="nb-subject">
+            {email.subject}
+            {email.isUnread && <span className="nb-unread-dot" />}
+          </span>
+          <span className="nb-preview">{email.preview}</span>
+        </span>
+        <Star size={15} className="nb-star" />
+      </button>
+    </li>
+  );
+}
 
-function TimeframeButtons({ selected, onSelect }: { selected: Timeframe | null; onSelect: (timeframe: Timeframe) => void }) { return <div className="timeframe-group" aria-label="Filter by timeframe">{timeframes.map((timeframe) => <button key={timeframe} className={selected === timeframe ? "filter-button selected" : "filter-button"} onClick={() => onSelect(timeframe)}><Clock3 size={15} /> {timeframe}</button>)}</div>; }
+function ComposePanel({
+  state,
+  onChange,
+  onCancel,
+  onSend,
+}: {
+  state: ComposeState;
+  onChange: (state: Partial<ComposeState>) => void;
+  onCancel: () => void;
+  onSend: () => void;
+}) {
+  return (
+    <section className="nb-compose">
+      <div className="nb-compose-head">
+        <h2>{state.mode === "reply" ? "Reply" : "Write a new message"}</h2>
+        <button className="nb-icon-btn" onClick={onCancel} aria-label="Close compose">
+          <X size={18} />
+        </button>
+      </div>
 
-function ComposePanel({ state, onChange, onCancel, onSend }: { state: ComposeState; onChange: (state: Partial<ComposeState>) => void; onCancel: () => void; onSend: () => void }) { return <section className="compose-panel"><div className="panel-heading"><div><div className="eyebrow">{state.mode === "reply" ? "REPLY" : "COMPOSE"}</div><h2>{state.mode === "reply" ? "Reply to conversation" : "Write a new message"}</h2></div><button className="icon-button" onClick={onCancel} aria-label="Close compose"><X size={18} /></button></div><div className="compose-fields"><label>To<input value={state.to} onChange={(event) => onChange({ to: event.target.value })} placeholder="name@example.com" autoFocus /></label><label>Cc<input value={state.cc} onChange={(event) => onChange({ cc: event.target.value })} placeholder="Optional" /></label><label>Subject<input value={state.subject} onChange={(event) => onChange({ subject: event.target.value })} placeholder="Subject" /></label><textarea value={state.body} onChange={(event) => onChange({ body: event.target.value })} placeholder="Write your message..." /></div><div className="compose-footer"><div className="compose-tools"><button className="icon-button" aria-label="Attach file"><Paperclip size={18} /></button><button className="icon-button" aria-label="Schedule send"><Clock3 size={18} /></button></div><div><button className="text-button" onClick={onCancel}>Discard</button><button className="primary-button" onClick={onSend}><Send size={16} /> Send</button></div></div></section>; }
+      <div className="nb-compose-fields">
+        <label>
+          <span>To</span>
+          <input value={state.to} onChange={(event) => onChange({ to: event.target.value })} placeholder="name@example.com" autoFocus />
+        </label>
+        <label>
+          <span>Cc</span>
+          <input value={state.cc} onChange={(event) => onChange({ cc: event.target.value })} placeholder="Optional" />
+        </label>
+        <label>
+          <span>Subject</span>
+          <input value={state.subject} onChange={(event) => onChange({ subject: event.target.value })} placeholder="Subject" />
+        </label>
+        <textarea value={state.body} onChange={(event) => onChange({ body: event.target.value })} placeholder="Write your message…" />
+      </div>
 
-function DetailPanel({ email, onBack, onReply }: { email: MailDetail; onBack: () => void; onReply: () => void }) { const safeHtml = email.bodyHtml ? DOMPurify.sanitize(email.bodyHtml, { USE_PROFILES: { html: true } }) : ""; return <section className="detail-panel"><button className="back-button" onClick={onBack}><ArrowLeft size={17} /> Back to inbox</button><div className="detail-heading"><div className="avatar avatar-large">{initials(email.sender)}</div><div className="detail-meta"><div className="eyebrow">{email.senderEmail}</div><h2>{email.subject}</h2><p>To {email.to} · {new Date(email.date).toLocaleString()}</p></div><button className="primary-button reply-button" onClick={onReply}>Reply <ArrowUpRight size={15} /></button></div>{safeHtml ? <article className="message-body message-html" dangerouslySetInnerHTML={{ __html: safeHtml }} /> : <article className="message-body">{email.bodyText.split("\n").map((line, index) => <p key={`${line}-${index}`}>{line || "\u00a0"}</p>)}</article>}</section>; }
+      <div className="nb-compose-foot">
+        <div className="nb-compose-tools">
+          <button className="nb-icon-btn" aria-label="Attach file">
+            <Paperclip size={17} />
+          </button>
+          <button className="nb-icon-btn" aria-label="Schedule send">
+            <Clock3 size={17} />
+          </button>
+        </div>
+        <div>
+          <button className="nb-text-btn" onClick={onCancel}>
+            Discard
+          </button>
+          <button className="nb-seal-btn" onClick={onSend}>
+            <Send size={15} /> Send
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
 
-function EmptyState({ connected }: { connected: boolean }) { return <div className="empty-state"><div className="empty-icon"><Mail size={25} /></div><h2>{connected ? "Your inbox is clear" : "Connect Gmail to begin"}</h2><p>{connected ? "New messages will appear here when they arrive." : "Sign in with Google to securely load your real mailbox."}</p>{!connected && <a className="primary-button" href="/api/auth/login">Sign in with Google <ArrowUpRight size={15} /></a>}</div>; }
+function DetailPanel({ email, onBack, onReply }: { email: MailDetail; onBack: () => void; onReply: () => void }) {
+  const safeHtml = email.bodyHtml ? DOMPurify.sanitize(email.bodyHtml, { USE_PROFILES: { html: true } }) : "";
+  return (
+    <section className="nb-detail">
+      <button className="nb-back" onClick={onBack}>
+        <ArrowLeft size={16} /> Back to inbox
+      </button>
 
-function Assistant({ messages, input, onInput, onAsk, onSuggestion, pendingSend, onCancelSend, onConfirmSend }: { messages: Array<{ role: "user" | "assistant"; content: string }>; input: string; onInput: (value: string) => void; onAsk: () => void; onSuggestion: (value: string) => void; pendingSend: ComposeState | null; onCancelSend: () => void; onConfirmSend: () => void }) { return <aside className="assistant"><div className="assistant-header"><div className="assistant-title"><span className="ai-spark"><Bot size={17} /></span><div><b>AI Mail Assistant</b><span>Connected to your workspace</span></div></div><button className="icon-button"><Archive size={17} /></button></div><div className="assistant-thread">{messages.map((message, index) => <div className={message.role === "user" ? "chat-bubble user" : "chat-bubble"} key={`${message.role}-${index}`}>{message.role === "assistant" && <span className="message-icon"><Sparkles size={13} /></span>}<span>{message.content}</span></div>)}{pendingSend && <div className="confirm-card"><div className="confirm-kicker"><Check size={14} /> Ready to send</div><strong>{pendingSend.subject || "(no subject)"}</strong><span>To {pendingSend.to}</span><p>{pendingSend.body}</p><div className="confirm-actions"><button className="text-button" onClick={onCancelSend}>Cancel</button><button className="primary-button" onClick={onConfirmSend}><Send size={14} /> Send email</button></div></div>}</div><div className="assistant-bottom"><div className="suggestions">{suggested.map((suggestion) => <button key={suggestion} onClick={() => onSuggestion(suggestion)}>{suggestion}</button>)}</div><div className="assistant-input"><textarea value={input} onChange={(event) => onInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); onAsk(); } }} placeholder="Ask me to find, compose, or manage your mail..." rows={2} /><button className="send-assistant" onClick={onAsk} aria-label="Send assistant message"><ArrowUpRight size={18} /></button></div><span className="assistant-note">AI can make mistakes. Review actions before sending.</span></div></aside>; }
+      <div className="nb-detail-head">
+        <div className="nb-avatar nb-avatar-lg">{initials(email.sender)}</div>
+        <div className="nb-detail-meta">
+          <span className="nb-detail-from">{email.senderEmail}</span>
+          <h2>{email.subject}</h2>
+          <p>
+            To {email.to}
+            <br />
+            {new Date(email.date).toLocaleString()}
+          </p>
+        </div>
+        <button className="nb-seal-btn" onClick={onReply}>
+          Reply
+        </button>
+      </div>
 
+      {safeHtml ? (
+        <article className="nb-message nb-message-html" dangerouslySetInnerHTML={{ __html: safeHtml }} />
+      ) : (
+        <article className="nb-message">
+          {email.bodyText.split("\n").map((line, index) => (
+            <p key={`${line}-${index}`}>{line || "\u00a0"}</p>
+          ))}
+        </article>
+      )}
+    </section>
+  );
+}
+
+function EmptyState({ connected }: { connected: boolean }) {
+  return (
+    <div className="nb-empty">
+      <div className="nb-empty-icon">
+        <Mail size={22} />
+      </div>
+      <h2>{connected ? "Your inbox is clear" : "Connect Gmail to begin"}</h2>
+      <p>{connected ? "New messages will appear here when they arrive." : "Sign in with Google to securely load your mailbox."}</p>
+      {!connected && (
+        <a className="nb-seal-btn" href="/api/auth/login">
+          Sign in with Google
+        </a>
+      )}
+    </div>
+  );
+}
+
+function Assistant({
+  open,
+  onClose,
+  messages,
+  input,
+  onInput,
+  onAsk,
+  onSuggestion,
+  pendingSend,
+  onCancelSend,
+  onConfirmSend,
+}: {
+  open: boolean;
+  onClose: () => void;
+  messages: Array<{ role: "user" | "assistant"; content: string }>;
+  input: string;
+  onInput: (value: string) => void;
+  onAsk: () => void;
+  onSuggestion: (value: string) => void;
+  pendingSend: ComposeState | null;
+  onCancelSend: () => void;
+  onConfirmSend: () => void;
+}) {
+  return (
+    <aside className={`nb-assistant ${open ? "nb-assistant-open" : ""}`} aria-hidden={!open}>
+      <div className="nb-assistant-head">
+        <div className="nb-assistant-title">
+          <Sparkles size={15} />
+          <span>Mail assistant</span>
+        </div>
+        <button className="nb-icon-btn" onClick={onClose} aria-label="Close assistant">
+          <X size={16} />
+        </button>
+      </div>
+
+      <div className="nb-thread">
+        {messages.map((message, index) => (
+          <div className={message.role === "user" ? "nb-bubble nb-bubble-user" : "nb-bubble"} key={`${message.role}-${index}`}>
+            {message.content}
+          </div>
+        ))}
+
+        {pendingSend && (
+          <div className="nb-confirm">
+            <div className="nb-confirm-kicker">
+              <Check size={13} /> Ready to send
+            </div>
+            <strong>{pendingSend.subject || "(no subject)"}</strong>
+            <span>To {pendingSend.to}</span>
+            <p>{pendingSend.body}</p>
+            <div className="nb-confirm-actions">
+              <button className="nb-text-btn" onClick={onCancelSend}>
+                Cancel
+              </button>
+              <button className="nb-seal-btn" onClick={onConfirmSend}>
+                <Send size={13} /> Send
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="nb-assistant-foot">
+        <div className="nb-suggestions">
+          {suggested.map((suggestion) => (
+            <button key={suggestion} onClick={() => onSuggestion(suggestion)}>
+              {suggestion}
+            </button>
+          ))}
+        </div>
+        <div className="nb-assistant-input">
+          <textarea
+            value={input}
+            onChange={(event) => onInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                onAsk();
+              }
+            }}
+            placeholder="Ask me to find, compose, or manage your mail…"
+            rows={2}
+          />
+          <button className="nb-send-btn" onClick={onAsk} aria-label="Send to assistant">
+            <ArrowUpRight size={17} />
+          </button>
+        </div>
+        <span className="nb-note">AI can make mistakes. Review actions before sending.</span>
+      </div>
+    </aside>
+  );
+}

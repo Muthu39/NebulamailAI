@@ -31,7 +31,7 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+# i have pushed env files to github for testing purpose, but in production, it is not recommended to push env files to github. So, please remove the env files from github before deploying to production.
 
 # vercel
 .vercel
