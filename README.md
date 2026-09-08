@@ -4,7 +4,7 @@ Nebula Mail AI is a Gmail-like workspace for real Google mail. It uses Google OA
 
 ## Live Demo
 
-Open the deployed application at **[https://lithish.vercel.app/](https://lithish.vercel.app/)**.
+Open the deployed application at your configured Vercel deployment URL.
 
 Select **Connect Gmail** to authorize a Google account and load its real mailbox. The live deployment requires the Google OAuth app to be configured and published according to Google’s verification rules.
 
@@ -129,10 +129,10 @@ GMAIL_WEBHOOK_SECRET=use-a-long-random-webhook-secret
 
 ### Public deployment
 
-The deployed application is **[https://lithish.vercel.app/](https://lithish.vercel.app/)**. Set the Vercel environment variable to:
+Set the Vercel environment variable to your deployment URL, for example:
 
 ```dotenv
-GOOGLE_REDIRECT_URI=https://lithish.vercel.app/api/auth/callback
+GOOGLE_REDIRECT_URI=https://your-vercel-project.vercel.app/api/auth/callback
 ```
 
 Add that exact URL to the Google OAuth client’s authorized redirect URIs. The login and callback routes use the same configured URI, so the value must match exactly.
@@ -506,7 +506,7 @@ npm run start
 For Vercel, configure all production environment variables in the project settings, especially:
 
 ```dotenv
-GOOGLE_REDIRECT_URI=https://lithish.vercel.app/api/auth/callback
+GOOGLE_REDIRECT_URI=https://your-vercel-project.vercel.app/api/auth/callback
 NEXTAUTH_SECRET=unique-production-secret
 ```
 
