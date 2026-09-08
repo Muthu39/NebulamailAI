@@ -4,6 +4,7 @@ Nebula is a Gmail workspace with an AI mail assistant.
 
 ## Use Nebula online
 
+### Note:
 It will work with gmail sign in on the account of 
 
 gmailid => nebulapro39@gmail.com
